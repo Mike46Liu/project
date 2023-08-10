@@ -1,0 +1,486 @@
+import java.awt.EventQueue;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
+import javax.swing.JButton;
+import javax.swing.JTextArea;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.JOptionPane;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.util.ArrayList;
+import java.util.List;
+import java.io.*;
+import javax.swing.*;
+import java.awt.*;
+
+public class BookManagementApp extends JFrame {
+    private JPanel contentPane;
+    private List<Book> bookList = new ArrayList<>();
+
+    public static void main(String[] args) {
+        EventQueue.invokeLater(() -> {
+            try {
+                BookManagementApp frame = new BookManagementApp();
+                frame.setVisible(true);
+                frame.bookList.clear();
+                frame.loadBooksFromFile("books.txt"); 
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+    public BookManagementApp() {
+        initializeUI();
+
+    }
+
+    private void initializeUI() {
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setBounds(100, 100, 450, 400);
+        contentPane = new JPanel();
+        contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+        setContentPane(contentPane);
+        contentPane.setLayout(new GridLayout(3, 1, 0, 40));
+
+        addButton("Add Book", this::showAddGUI);
+        addButton("Search Book", this::showSearchGUI);
+        addButton("Display Books", this::showDisplayGUI);
+    }
+    private void addButton(String label, ActionListener actionListener) {
+        JButton button = new JButton(label);
+        button.addActionListener(actionListener);
+        contentPane.add(button);
+    }
+
+
+    public void showMainGUI() {
+        setVisible(true);
+    }    
+    private void showAddGUI(ActionEvent e) {
+        AddBookGUI addGUI = new AddBookGUI(this);
+        addGUI.setVisible(true);
+    }
+
+    private void showSearchGUI(ActionEvent e) {
+        SearchBookGUI searchGUI = new SearchBookGUI(this);
+        searchGUI.setVisible(true);
+    }
+
+    private void showDisplayGUI(ActionEvent e) {
+        DisplayBooksGUI displayGUI = new DisplayBooksGUI(this, bookList);
+        displayGUI.setVisible(true);
+    }
+
+
+    public void addBook(String title, String author, String genre, int year) {
+        Book book = new Book(title, author, genre, year);
+        bookList.add(book);
+        updateBookList();
+    }
+
+    public void deleteBook(Book book) {
+        bookList.remove(book);
+        updateBookList();
+    }
+    public void deleteBooksByTitle(String title) {
+    List<Book> booksToRemove = new ArrayList<>();
+    for (Book book : bookList) {
+        if (book.getTitle().equalsIgnoreCase(title)) {
+            booksToRemove.add(book);
+        }
+    }
+
+    bookList.removeAll(booksToRemove);
+    updateBookList();
+}
+
+    public void updateBookList() {
+        StringBuilder result = new StringBuilder();
+        for (Book book : bookList) {
+            result.append(book.toString()).append("\n");
+        }
+        saveBooksToFile("books.txt");
+       
+    }
+
+
+    public void saveBooksToFile(String filename) {
+    try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
+        for (Book book : bookList) {
+            String ratingStr = (book.getRating() != -1) ? Integer.toString(book.getRating()) : "";
+            writer.println(book.getTitle() + "," + book.getAuthor() + "," + book.getGenre() + "," + book.getYear() + "," + ratingStr);
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(null, "Error saving books to file.");
+    }
+}
+
+
+    public void loadBooksFromFile(String filename) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 4) {
+                    String title = parts[0];
+                    String author = parts[1];
+                    String genre = parts[2];
+                    int year = Integer.parseInt(parts[3]);
+                    int rating = -1; 
+
+                    if (parts.length == 5 && !parts[4].isEmpty()) {
+                        rating = Integer.parseInt(parts[4]); 
+                    }
+
+                    Book book = new Book(title, author, genre, year);
+                    book.setRating(rating); 
+                    bookList.add(book);
+                }
+            }
+            updateBookList();
+        } catch (IOException | NumberFormatException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error loading books from file.");
+        }
+    }
+
+class BackButton extends JButton {
+    private BookManagementApp parent;
+    public BackButton(BookManagementApp parent) {
+        super("Back");
+        this.parent = parent;
+        addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                parent.showMainGUI();
+                JFrame currentFrame = (JFrame) SwingUtilities.getWindowAncestor(BackButton.this);
+                currentFrame.dispose();
+                
+            }
+        });
+    }
+}
+
+
+class AddBookGUI extends JFrame {
+    private BookManagementApp parent;
+    private JTextField titleTextField;
+    private JTextField authorTextField;
+    private JTextField genreTextField;
+    private JTextField yearTextField;
+
+
+    public AddBookGUI(BookManagementApp parent) {
+        this.parent = parent;
+
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setBounds(180, 170, 300, 200);
+        JPanel contentPane = new JPanel();
+        contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+        setContentPane(contentPane);
+        contentPane.setLayout(null);
+
+        JLabel titleLabel = new JLabel("Title:");
+        titleLabel.setBounds(10, 10, 46, 14);
+        contentPane.add(titleLabel);
+
+        titleTextField = new JTextField();
+        titleTextField.setBounds(60, 7, 150, 20);
+        contentPane.add(titleTextField);
+        titleTextField.setColumns(10);
+
+        JLabel authorLabel = new JLabel("Author:");
+        authorLabel.setBounds(10, 35, 50, 14);
+        contentPane.add(authorLabel);
+
+        authorTextField = new JTextField();
+        authorTextField.setBounds(60, 32, 150, 20);
+        contentPane.add(authorTextField);
+        authorTextField.setColumns(10);
+
+        JLabel genreLabel = new JLabel("Genre:");
+        genreLabel.setBounds(10, 60, 46, 14);
+        contentPane.add(genreLabel);
+
+        genreTextField = new JTextField();
+        genreTextField.setBounds(60, 57, 150, 20);
+        contentPane.add(genreTextField);
+        genreTextField.setColumns(10);
+
+        JLabel yearLabel = new JLabel("Year:");
+        yearLabel.setBounds(10, 85, 46, 14);
+        contentPane.add(yearLabel);
+
+        yearTextField = new JTextField();
+        yearTextField.setBounds(60, 82, 150, 20);
+        contentPane.add(yearTextField);
+        yearTextField.setColumns(10);
+
+        JButton addButton = new JButton("Add Book");
+        addButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                addBook();
+            }
+        });
+        addButton.setBounds(20, 115, 100, 23);
+        contentPane.add(addButton);
+        BackButton backButton = new BackButton(parent);
+        backButton.setBounds(170, 115, 80, 23);
+        contentPane.add(backButton);       
+    }
+
+    private void addBook() {
+        String title = titleTextField.getText();
+        String author = authorTextField.getText();
+        String genre = genreTextField.getText();
+        int year = Integer.parseInt(yearTextField.getText());
+
+        parent.addBook(title, author, genre, year);
+        dispose();
+    }
+}
+
+class SearchBookGUI extends JFrame {
+    private BookManagementApp parent;
+    private JTextField searchTextField;
+
+    public SearchBookGUI(BookManagementApp parent) {
+        this.parent = parent;
+
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setBounds(170, 180, 300, 150);
+        JPanel contentPane = new JPanel();
+        contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+        setContentPane(contentPane);
+        contentPane.setLayout(null);
+
+        JLabel searchLabel = new JLabel("Search Title:");
+        searchLabel.setBounds(10, 10, 100, 14);
+        contentPane.add(searchLabel);
+
+        searchTextField = new JTextField();
+        searchTextField.setBounds(10, 35, 206, 20);
+        contentPane.add(searchTextField);
+        searchTextField.setColumns(10);
+
+        JButton searchButton = new JButton("Search");
+        searchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                searchBook();
+            }
+        });
+        searchButton.setBounds(10, 65, 100, 23);
+        contentPane.add(searchButton);
+        BackButton backButton = new BackButton(parent);
+        backButton.setBounds(120, 65, 80, 23);
+        contentPane.add(backButton);
+    }
+
+class showBookGUI extends JFrame {
+    private BookManagementApp parent;
+    private List<Book> foundBooks;
+
+    public showBookGUI(BookManagementApp parent, List<Book> foundBooks) {
+        this.parent = parent;
+        this.foundBooks = foundBooks;
+
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setBounds(100, 100, 400, 400); 
+        JPanel contentPane = new JPanel();
+        contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+        setContentPane(contentPane);
+        contentPane.setLayout(new BorderLayout());
+
+        JTextArea bookListTextArea = new JTextArea();
+        bookListTextArea.setEditable(false);
+
+        StringBuilder result = new StringBuilder();
+        for (Book book : foundBooks) {
+            result.append(book.toString()).append("\n\n");
+        }
+        bookListTextArea.setText(result.toString());
+
+        JScrollPane scrollPane = new JScrollPane(bookListTextArea); 
+        contentPane.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel();
+        contentPane.add(buttonPanel, BorderLayout.SOUTH);
+
+        JButton rateButton = new JButton("Rate Book");
+        rateButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                for (Book book : foundBooks) {
+                    rateBookGUI rateGUI = new rateBookGUI(parent, book);
+                    rateGUI.setVisible(true);
+                }
+                dispose();
+            }
+        });
+        buttonPanel.add(rateButton); 
+
+        JButton deleteButton = new JButton("Delete Book");
+        deleteButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                for (Book book : foundBooks) {
+                    parent.deleteBooksByTitle(book.getTitle());
+                }
+                dispose();
+            }
+        });
+        buttonPanel.add(deleteButton);
+
+        BackButton backButton = new BackButton(parent);
+        buttonPanel.add(backButton);  
+
+        pack(); 
+    }
+}
+    private void searchBook() {
+        String searchTitle = searchTextField.getText();
+
+        List<Book> foundBooks = new ArrayList<>();
+        for (Book book : parent.bookList) {
+            if (book.getTitle().equalsIgnoreCase(searchTitle)) {
+                foundBooks.add(book);
+            }
+        }
+
+        if (foundBooks.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Book not found.");
+        } else {
+            showBookGUI showDetailsGUI = new showBookGUI(parent, foundBooks);
+            showDetailsGUI.setVisible(true);
+            dispose();
+        }
+    }
+}
+
+
+class rateBookGUI extends JFrame {
+    private BookManagementApp parent;
+    private Book book;
+
+    public rateBookGUI(BookManagementApp parent, Book book ) {
+        this.parent = parent;
+        this.book= book;
+
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setBounds(100, 100, 300, 150);
+        JPanel contentPane = new JPanel();
+        contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+        setContentPane(contentPane);
+        contentPane.setLayout(null);
+
+        JLabel rateLabel = new JLabel("Rate the book (1-10):");
+        rateLabel.setBounds(10, 10, 150, 14);
+        contentPane.add(rateLabel);
+
+        JTextField rateTextField = new JTextField();
+        rateTextField.setBounds(10, 35, 60, 20);
+        contentPane.add(rateTextField);
+        rateTextField.setColumns(10);
+
+        JButton rateButton = new JButton("Rate");
+        rateButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    int rating = Integer.parseInt(rateTextField.getText());
+                    if (rating >= 1 && rating <= 10) {
+                        book.setRating(rating);
+                        parent.updateBookList();
+                        dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Invalid rating. Please enter a number between 1 and 10.");
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(null, "Invalid rating. Please enter a number between 1 and 10.");
+                }
+            }
+        });
+        rateButton.setBounds(10, 65, 100, 23);
+        contentPane.add(rateButton);
+    }
+}
+
+    class DisplayBooksGUI extends JFrame {
+        public DisplayBooksGUI(BookManagementApp parent, List<Book> bookList) {
+            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            setBounds(100, 100, 300, 400); 
+            JPanel contentPane = new JPanel();
+            contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+            setContentPane(contentPane);
+            contentPane.setLayout(new BorderLayout());
+
+            JTextArea bookListTextArea = new JTextArea();
+            bookListTextArea.setEditable(false);
+
+            StringBuilder result = new StringBuilder();
+            for (Book book : bookList) {
+                result.append(book.toString()).append("\n\n");
+            }
+            bookListTextArea.setText(result.toString());
+
+            JScrollPane scrollPane = new JScrollPane(bookListTextArea);
+            contentPane.add(scrollPane, BorderLayout.CENTER);
+            
+            JPanel buttonPanel = new JPanel();
+            BackButton backButton = new BackButton(parent);
+            buttonPanel.add(backButton);
+            
+            contentPane.add(buttonPanel, BorderLayout.SOUTH);
+        }
+    }
+
+class Book {
+    private String title;
+    private String author;
+    private String genre;
+    private int year;
+    private int rating = -1;
+
+    public Book(String title, String author, String genre, int year) {
+        this.title = title;
+        this.author = author;
+        this.genre = genre;
+        this.year = year;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getGenre() {
+        return genre;
+    }
+
+    public int getYear() {
+        return year;
+    }
+
+    public int getRating() {
+        return rating;
+    }
+    public void setRating(int rating) {
+            this.rating = rating;
+    }
+ 
+
+    @Override
+    public String toString() {
+        StringBuilder result = new StringBuilder();
+        result.append("Title: ").append(title).append("\n");
+        result.append("Author: ").append(author).append("\n");
+        result.append("Genre: ").append(genre).append("\n");
+        result.append("Year: ").append(year).append("\n");
+        if (rating != -1) {
+            result.append("Rating: ").append(rating).append("\n");
+        }
+        return result.toString();
+    }
+}}
